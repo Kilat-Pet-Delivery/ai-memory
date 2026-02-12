@@ -1,191 +1,248 @@
-# Database Catalog - [PROJECT_NAME]
-*Complete reference of all databases, schemas, and data models*
+# Database Catalog - Kilat Pet Delivery
+*Complete reference of all databases and schemas*
 
 ## Database Overview
 
-**Primary Database**: [PostgreSQL / MySQL / MongoDB / etc.]
-**Version**: [DB_VERSION]
-**Host**: [DB_HOST]
-**Port**: [DB_PORT]
-**Total Databases**: [COUNT]
-**ORM**: [GORM / Hibernate / Prisma / SQLAlchemy / etc.]
-**Migration Tool**: [golang-migrate / Flyway / Alembic / Prisma]
+**Primary Database**: PostgreSQL 16 + PostGIS 3.4
+**Host**: localhost:5433 (host) / postgres:5432 (Docker)
+**Total Databases**: 6
+**Total Tables**: 10
+**ORM**: GORM (AutoMigrate)
+**Migration Tool**: GORM AutoMigrate (no versioned files yet)
 
 ## Database Inventory
 
-| # | Database Name | Owner Service | Extensions | Size Est. |
-|---|--------------|--------------|------------|-----------|
-| 1 | [DB_NAME_1] | [SERVICE_1] | [Extensions] | [Size] |
-| 2 | [DB_NAME_2] | [SERVICE_2] | [Extensions] | [Size] |
-| 3 | [DB_NAME_3] | [SERVICE_3] | [Extensions] | [Size] |
-| 4 | [DB_NAME_4] | [SERVICE_4] | [Extensions] | [Size] |
-
-## Connection Strings
-
-```
-# Pattern
-[DB_TYPE]://[USER]:[PASSWORD]@[HOST]:[PORT]/[DB_NAME]?sslmode=[MODE]
-
-# Service-specific
-[SERVICE_1]: [DB_TYPE]://[USER]:[PASS]@[HOST]:[PORT]/[DB_NAME_1]
-[SERVICE_2]: [DB_TYPE]://[USER]:[PASS]@[HOST]:[PORT]/[DB_NAME_2]
-[SERVICE_3]: [DB_TYPE]://[USER]:[PASS]@[HOST]:[PORT]/[DB_NAME_3]
-```
+| # | Database | Owner Service | Extensions | Tables |
+|---|---------|--------------|------------|--------|
+| 1 | kilat_identity | service-identity | uuid-ossp | users, refresh_tokens |
+| 2 | kilat_booking | service-booking | PostGIS, uuid-ossp | bookings |
+| 3 | kilat_payment | service-payment | uuid-ossp | payments |
+| 4 | kilat_runner | service-runner | PostGIS, uuid-ossp | runners, pet_shops |
+| 5 | kilat_tracking | service-tracking | PostGIS, uuid-ossp | trip_tracks, waypoints |
+| 6 | kilat_notification | service-notification | uuid-ossp | notifications, notification_preferences |
 
 ---
 
-## Database: [DB_NAME_1] (Service: [SERVICE_1])
+## kilat_identity — service-identity
 
-### Tables
-
-#### Table: [table_name_1]
-**Purpose**: [What data this table stores]
-**Row Estimate**: [Approximate row count]
-
+### Table: users
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
-| id | UUID / BIGINT | NO | gen_random_uuid() | Primary key |
-| [column_2] | VARCHAR(255) | NO | — | [Description] |
-| [column_3] | INTEGER | YES | 0 | [Description] |
-| [column_4] | BOOLEAN | NO | false | [Description] |
-| [column_5] | TIMESTAMP | NO | NOW() | [Description] |
-| created_at | TIMESTAMP | NO | NOW() | Record creation time |
-| updated_at | TIMESTAMP | NO | NOW() | Last update time |
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| email | VARCHAR(255) | NO | — | Unique, user email |
+| phone | VARCHAR(20) | YES | — | Phone number |
+| password_hash | VARCHAR(255) | NO | — | bcrypt hash |
+| full_name | VARCHAR(255) | NO | — | Display name |
+| role | VARCHAR(20) | NO | — | owner/runner/admin/shop |
+| is_verified | BOOLEAN | NO | false | Email verified |
+| avatar_url | TEXT | YES | — | Profile picture URL |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
 
-**Indexes**:
-| Index Name | Columns | Type | Purpose |
-|-----------|---------|------|---------|
-| pk_[table] | id | PRIMARY | Primary key |
-| idx_[table]_[col] | [column] | BTREE | [Purpose] |
-| idx_[table]_[col] | [column] | UNIQUE | [Purpose] |
-
-**Foreign Keys**:
-| Column | References | On Delete |
-|--------|-----------|-----------|
-| [column] | [other_table](id) | CASCADE / SET NULL |
-
----
-
-#### Table: [table_name_2]
-**Purpose**: [What data this table stores]
-
+### Table: refresh_tokens
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
-| id | UUID | NO | gen_random_uuid() | Primary key |
-| [fk_column] | UUID | NO | — | FK to [table_1] |
-| [column_2] | TEXT | YES | — | [Description] |
-| created_at | TIMESTAMP | NO | NOW() | Record creation |
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | — | FK to users (indexed) |
+| token | TEXT | NO | — | Unique refresh token |
+| expires_at | TIMESTAMPTZ | NO | — | Token expiry |
+| revoked | BOOLEAN | NO | false | Token revoked |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
 
 ---
 
-*Copy the table template for each additional table.*
+## kilat_booking — service-booking
 
-## Database: [DB_NAME_2] (Service: [SERVICE_2])
-
-### Tables
-
-#### Table: [table_name]
-**Purpose**: [Description]
-
+### Table: bookings
 | Column | Type | Nullable | Default | Description |
 |--------|------|----------|---------|-------------|
-| id | UUID | NO | gen_random_uuid() | Primary key |
-| [columns...] | | | | |
+| id | UUID | NO | — | Primary key |
+| booking_number | VARCHAR(20) | NO | — | Unique, format BK-XXXXXX |
+| owner_id | UUID | NO | — | Pet owner (indexed) |
+| runner_id | UUID | YES | — | Assigned runner (indexed) |
+| status | VARCHAR(30) | NO | — | State machine (indexed) |
+| pet_spec | JSONB | NO | — | {name, petType, weightKg, age, allergies, notes} |
+| crate_requirement | JSONB | NO | — | {size, type} |
+| pickup_address | JSONB | NO | — | AddressDTO |
+| dropoff_address | JSONB | NO | — | AddressDTO |
+| route_spec | JSONB | YES | — | {distance, duration, polyline} |
+| estimated_price_cents | BIGINT | NO | — | Estimated price |
+| final_price_cents | BIGINT | YES | — | Final price |
+| currency | VARCHAR(3) | NO | MYR | Currency code |
+| scheduled_at | TIMESTAMPTZ | YES | — | Scheduled pickup time |
+| picked_up_at | TIMESTAMPTZ | YES | — | When pet was picked up |
+| delivered_at | TIMESTAMPTZ | YES | — | When pet was delivered |
+| cancelled_at | TIMESTAMPTZ | YES | — | When cancelled |
+| cancel_note | VARCHAR(500) | YES | — | Cancellation reason |
+| notes | VARCHAR(1000) | YES | — | Additional notes |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+**Status values**: requested, accepted, in_progress, delivered, completed, cancelled
 
 ---
 
-*Add additional database sections as needed.*
+## kilat_payment — service-payment
 
-## Entity Relationship Summary
+### Table: payments
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| booking_id | UUID | NO | — | Unique, one payment per booking |
+| owner_id | UUID | NO | — | Pet owner |
+| runner_id | UUID | YES | — | Delivery runner |
+| escrow_status | VARCHAR(20) | NO | pending | State machine |
+| amount_cents | BIGINT | NO | — | Total amount |
+| platform_fee_cents | BIGINT | NO | — | Platform fee |
+| runner_payout_cents | BIGINT | NO | — | Runner payout (amount - fee) |
+| currency | VARCHAR(3) | NO | MYR | Currency code |
+| payment_method | VARCHAR(50) | YES | — | Payment method |
+| stripe_payment_id | VARCHAR(255) | YES | — | Mock Stripe payment ID |
+| escrow_held_at | TIMESTAMPTZ | YES | — | When escrow was held |
+| escrow_released_at | TIMESTAMPTZ | YES | — | When released to runner |
+| refunded_at | TIMESTAMPTZ | YES | — | When refunded |
+| refund_reason | TEXT | YES | — | Refund reason |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
 
-```
-[TABLE_A] 1---* [TABLE_B]    (One-to-Many)
-[TABLE_B] *---1 [TABLE_C]    (Many-to-One)
-[TABLE_D] *---* [TABLE_E]    (Many-to-Many via junction)
-```
-
-### Cross-Service Data References
-*Note: In microservices, services reference each other by ID, not by foreign key.*
-
-| Source Service | Source Table | Referenced ID | Target Service | Target Table |
-|---------------|-------------|---------------|---------------|-------------|
-| [SERVICE_A] | [table_a] | user_id | [SERVICE_B] | users |
-| [SERVICE_A] | [table_a] | order_id | [SERVICE_C] | orders |
-
-## Database Extensions
-
-| Extension | Database(s) | Purpose |
-|-----------|------------|---------|
-| uuid-ossp | [All] | UUID generation |
-| [postgis] | [Geo DB] | Geospatial queries |
-| [pg_trgm] | [Search DB] | Text search |
-
-## Migration History
-
-### [SERVICE_1] Migrations
-| Version | Name | Date | Description |
-|---------|------|------|-------------|
-| V001 | create_[table]_table | [DATE] | Initial table creation |
-| V002 | add_[column]_to_[table] | [DATE] | Added [column] |
-| V003 | create_[index]_index | [DATE] | Performance index |
-
-### Migration Commands
-```bash
-# Run migrations for a service
-[migration_tool] -path [service]/migrations -database "[connection_string]" up
-
-# Rollback last migration
-[migration_tool] -path [service]/migrations -database "[connection_string]" down 1
-
-# Check migration status
-[migration_tool] -path [service]/migrations -database "[connection_string]" version
-```
-
-## Seed Data
-
-### Required Seed Data
-| Database | Table | Purpose | Count |
-|----------|-------|---------|-------|
-| [DB_1] | [table] | [Default roles, configs, etc.] | [N] |
-| [DB_2] | [table] | [Test data] | [N] |
-
-### Seed Script Location
-```
-[path/to/seed/scripts]
-```
-
-## Backup & Recovery
-
-### Backup Strategy
-- **Frequency**: [Daily / Hourly / Continuous]
-- **Type**: [Full / Incremental / WAL archiving]
-- **Retention**: [Duration]
-- **Storage**: [S3 / GCS / Local]
-
-### Recovery Commands
-```bash
-# Backup specific database
-pg_dump -h [HOST] -p [PORT] -U [USER] -d [DB_NAME] > backup.sql
-
-# Restore from backup
-psql -h [HOST] -p [PORT] -U [USER] -d [DB_NAME] < backup.sql
-```
-
-## Adding a New Database
-
-When a new database is needed:
-1. Add entry to **Database Inventory** table
-2. Create a **Database section** with table definitions
-3. Add connection string to **Connection Strings**
-4. Update `main/service-registry.md` with database info
-5. Document any required extensions
-6. Create initial migration files
-7. Add seed data if needed
+**Escrow status values**: pending, held, released, refunded, failed
 
 ---
 
-**Version**: Database Catalog v1.0
-**Last Updated**: [DATE]
-**Status**: Template — requires project-specific schemas
+## kilat_runner — service-runner
 
-*This file documents all data storage. Keep it updated when schemas change!*
+### Table: runners
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | — | Unique, FK to identity |
+| full_name | VARCHAR(255) | NO | — | Runner name |
+| phone | VARCHAR(20) | YES | — | Phone |
+| vehicle_type | VARCHAR(20) | NO | — | car/van/motorcycle |
+| vehicle_plate | VARCHAR(20) | YES | — | License plate |
+| vehicle_model | VARCHAR(100) | YES | — | Vehicle model |
+| vehicle_year | INT | YES | — | Vehicle year |
+| air_conditioned | BOOLEAN | NO | false | Has AC |
+| session_status | VARCHAR(20) | NO | inactive | active/inactive |
+| current_lat | DOUBLE | YES | — | GPS latitude |
+| current_lng | DOUBLE | YES | — | GPS longitude |
+| rating | DECIMAL(3,2) | NO | 0.0 | Average rating |
+| total_trips | INT | NO | 0 | Completed trips |
+| completion_rate | DECIMAL(3,2) | NO | 1.0 | Trip completion rate |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+**PostGIS**: Uses `ST_DWithin`, `ST_MakePoint`, `ST_Distance` for nearby search
+
+### Table: pet_shops
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| owner_id | UUID | YES | — | Shop owner (indexed) |
+| name | VARCHAR(255) | NO | — | Shop name |
+| address | TEXT | NO | — | Full address |
+| latitude | DOUBLE | NO | — | GPS latitude |
+| longitude | DOUBLE | NO | — | GPS longitude |
+| phone | VARCHAR(20) | YES | — | Phone |
+| email | VARCHAR(255) | YES | — | Email |
+| category | VARCHAR(20) | NO | — | grooming/vet/boarding/pet_store (indexed) |
+| services | JSONB | NO | [] | Array of service strings |
+| rating | DECIMAL(3,2) | NO | 0.0 | Average rating |
+| image_url | TEXT | YES | — | Shop image |
+| opening_hours | VARCHAR(100) | YES | — | Opening hours |
+| description | TEXT | YES | — | Shop description |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+---
+
+## kilat_tracking — service-tracking
+
+### Table: trip_tracks
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| booking_id | UUID | NO | — | Unique, one track per booking |
+| runner_id | UUID | NO | — | Runner (indexed) |
+| status | VARCHAR(20) | NO | active | active/completed/cancelled (indexed) |
+| total_distance_km | DECIMAL(10,3) | NO | 0 | Total distance |
+| started_at | TIMESTAMPTZ | NO | NOW() | Trip start |
+| completed_at | TIMESTAMPTZ | YES | — | Trip end |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+### Table: waypoints
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| trip_track_id | UUID | NO | — | FK to trip_tracks (indexed) |
+| latitude | DOUBLE | NO | — | GPS latitude |
+| longitude | DOUBLE | NO | — | GPS longitude |
+| speed | DECIMAL(6,2) | YES | — | Speed km/h |
+| heading | DECIMAL(5,2) | YES | — | Heading degrees |
+| recorded_at | TIMESTAMPTZ | NO | — | GPS timestamp |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+
+**PostGIS**: Generates GeoJSON LineString from waypoints
+
+---
+
+## kilat_notification — service-notification
+
+### Table: notifications
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | — | Target user (indexed) |
+| booking_id | UUID | YES | — | Related booking (indexed) |
+| event_type | VARCHAR(50) | NO | — | Source event type |
+| title | VARCHAR(255) | NO | — | Notification title |
+| body | TEXT | NO | — | Notification body |
+| channels_sent | JSONB | NO | [] | Channels successfully sent (push/sms/email) |
+| channels_failed | JSONB | NO | [] | Channels that failed |
+| retry_count | INT | NO | 0 | Retry attempts |
+| max_retries | INT | NO | 3 | Max retries |
+| status | VARCHAR(20) | NO | pending | pending/sent/partially_sent/failed |
+| is_read | BOOLEAN | NO | false | Read by user |
+| metadata | JSONB | YES | — | Extra event data |
+| fcm_sent_at | TIMESTAMPTZ | YES | — | Push sent time |
+| sms_sent_at | TIMESTAMPTZ | YES | — | SMS sent time |
+| email_sent_at | TIMESTAMPTZ | YES | — | Email sent time |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+### Table: notification_preferences
+| Column | Type | Nullable | Default | Description |
+|--------|------|----------|---------|-------------|
+| id | UUID | NO | uuid_generate_v4() | Primary key |
+| user_id | UUID | NO | — | Unique, one per user |
+| enable_push | BOOLEAN | NO | true | Enable FCM push |
+| enable_sms | BOOLEAN | NO | true | Enable Twilio SMS |
+| enable_email | BOOLEAN | NO | true | Enable SMTP email |
+| fcm_token | VARCHAR(255) | YES | — | Firebase token |
+| phone_number | VARCHAR(20) | YES | — | SMS phone |
+| email | VARCHAR(255) | YES | — | Email address |
+| quiet_hours_start | TIME | YES | — | Quiet hours start |
+| quiet_hours_end | TIME | YES | — | Quiet hours end |
+| version | BIGINT | NO | 1 | Optimistic locking |
+| created_at | TIMESTAMPTZ | NO | NOW() | Created |
+| updated_at | TIMESTAMPTZ | NO | NOW() | Updated |
+
+---
+
+## Architectural Patterns in Database
+
+| Pattern | Usage |
+|---------|-------|
+| **Optimistic Locking** | All tables have `version` column (BIGINT, default 1) |
+| **JSONB Storage** | Booking pet_spec, addresses, route_spec; PetShop services; Notification channels |
+| **PostGIS Geospatial** | Runner nearby (ST_DWithin), PetShop nearby, Waypoint GeoJSON |
+| **UUID Primary Keys** | All tables use UUID with uuid_generate_v4() |
+| **Database per Service** | 6 separate databases, no cross-service joins |
+| **Soft State** | Status columns for state machines (booking, payment, tracking) |

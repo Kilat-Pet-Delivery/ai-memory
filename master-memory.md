@@ -1,8 +1,8 @@
-# Microservices MemoryCore - Master Memory
-*Entry point for instant microservices architecture restoration*
+# Microservices MemoryCore - Kilat Pet Delivery
+*Entry point for instant architecture restoration*
 
 ## System Declaration
-**I am your Microservices Architecture AI** — I maintain deep, persistent knowledge of the **[PROJECT_NAME]** microservices system. I remember every service, endpoint, event, database, and infrastructure component across all conversations.
+**I am your Kilat Pet Delivery Architecture AI** — I maintain deep, persistent knowledge of the **Kilat Pet Delivery** microservices system ("Grab for Pets"). I remember every service, endpoint, event, database, and infrastructure component across all conversations.
 
 ## Core Loading System
 
@@ -13,7 +13,7 @@ When you type **"load microservices"** in any conversation:
 2. **Load service registry** from `main/service-registry.md`
 3. **Load infrastructure** from `main/infrastructure.md`
 4. **Restore session context** from `main/current-session.md`
-5. **READY** — Full microservices knowledge restored!
+5. **READY** — Full Kilat architecture knowledge restored!
 
 ### Quick Commands
 ```
@@ -21,42 +21,33 @@ When you type **"load microservices"** in any conversation:
 "load services"         -> Service registry only
 "load architecture"     -> Architecture patterns only
 "load infrastructure"   -> Infrastructure config only
-"load api catalog"      -> All API endpoints
-"load events"           -> Event catalog
-"load databases"        -> Database schemas
+"load api catalog"      -> All 40+ API endpoints
+"load events"           -> 19 Kafka events across 4 topics
+"load databases"        -> 6 databases, 10 tables
 "debug [service]"       -> Debug context for specific service
-"add service [name]"    -> Register new service
-"add endpoint"          -> Add API endpoint
-"add event"             -> Add async event
-"load ddd"              -> DDD patterns, bounded contexts, aggregates
-"load security"         -> Security protocols, auth, OWASP, encryption
+"load ddd"              -> Bounded contexts, aggregates, domain events
+"load security"         -> JWT, RBAC, OWASP protection
 "save"                  -> Persist all changes to files
 ```
 
 ## Essential Components (Always Load)
 
-*These 4 core files contain everything needed for instant architecture knowledge*
-
 ### [Architecture Core](./main/architecture-core.md)
-- Architecture style and patterns used
-- Communication patterns (sync/async)
-- Shared libraries and conventions
-- Coding standards and project structure
+- Go 1.24 + Gin + GORM, DDD, Clean Architecture, Event-Driven
+- Kafka + CloudEvents, Saga Pattern, API Gateway
+- Shared libraries: lib-common, lib-proto
 - **ESSENTIAL** — This defines HOW the system is built
 
 ### [Service Registry](./main/service-registry.md)
-- Complete list of all microservices
-- Ports, databases, tech stack per service
-- Service responsibilities and boundaries
-- Inter-service dependencies
+- 7 services: identity, booking, payment, runner, tracking, notification, gateway
+- Ports 8001-8006 + gateway 8080
+- PostgreSQL per service, PostGIS for geospatial
 - **ESSENTIAL** — This defines WHAT services exist
 
 ### [Infrastructure](./main/infrastructure.md)
-- Container orchestration (Docker/K8s)
-- Database systems and configuration
-- Message brokers and event streaming
-- API gateway and service mesh
-- CI/CD pipeline and monitoring
+- Docker Compose at infrastructure/docker-compose.yml
+- PostgreSQL 16 + PostGIS 3.4 (port 5433), Kafka (9092), Zookeeper (2181)
+- API Gateway on port 8080
 - **ESSENTIAL** — This defines WHERE services run
 
 ### [Current Session](./main/current-session.md)
@@ -69,74 +60,43 @@ When you type **"load microservices"** in any conversation:
 
 | Service | Port | Database | Status |
 |---------|------|----------|--------|
-| [SERVICE_1] | [PORT] | [DB_NAME] | [STATUS] |
-| [SERVICE_2] | [PORT] | [DB_NAME] | [STATUS] |
-| [SERVICE_3] | [PORT] | [DB_NAME] | [STATUS] |
-
-*Full details in [service-registry.md](./main/service-registry.md)*
+| service-identity | 8004 | kilat_identity | Active |
+| service-booking | 8001 | kilat_booking (PostGIS) | Active |
+| service-payment | 8002 | kilat_payment | Active |
+| service-runner | 8003 | kilat_runner (PostGIS) | Active |
+| service-tracking | 8005 | kilat_tracking (PostGIS) | Active |
+| service-notification | 8006 | kilat_notification | Active |
+| api-gateway | 8080 | — (proxy only) | Active |
 
 ## On-Demand Components (Load When Needed)
 
 ### API Catalog
 *Load when you say: "load api catalog"*
-- [API Catalog](./catalog/api-catalog.md) — All REST/gRPC endpoints across all services
-- Organized by service with method, path, auth, request/response
+- [API Catalog](./catalog/api-catalog.md) — 40+ endpoints across 6 services + WebSocket
 
 ### Event Catalog
 *Load when you say: "load events"*
-- [Event Catalog](./catalog/event-catalog.md) — All async events
-- Topics, producers, consumers, payload schemas
+- [Event Catalog](./catalog/event-catalog.md) — 19 Kafka events, 4 topics, Saga pattern
 
 ### Database Catalog
 *Load when you say: "load databases"*
-- [Database Catalog](./catalog/database-catalog.md) — All databases and schemas
-- Tables, relationships, indexes, extensions
+- [Database Catalog](./catalog/database-catalog.md) — 6 databases, 10 tables, PostGIS + JSONB
 
 ### Protocols
-*Load when you say: "debug", "new service", "incident", "load ddd", or "load security"*
 - [Debug Protocol](./protocols/debug-protocol.md) — Distributed debugging guide
 - [New Service Protocol](./protocols/new-service-protocol.md) — Service scaffolding checklist
 - [Incident Protocol](./protocols/incident-protocol.md) — Incident response procedures
-- [DDD Protocol](./protocols/ddd-protocol.md) — Bounded contexts, aggregates, domain events, ubiquitous language
-- [Security Protocol](./protocols/security-protocol.md) — Auth, RBAC, OWASP Top 10, encryption, secrets management
-
-### Feature Extensions
-*Load when you say: "load dependencies" or "health check"*
-- [Dependency Tracker](./feature/dependency-tracker/) — Service dependency graph
-- [Health Monitor](./feature/health-monitor/) — Health check patterns
-
-## Architecture Philosophy
-
-**I don't need to load everything at once to help you effectively.**
-**Core files give me the big picture. Catalogs and protocols load on-demand for deep dives.**
-**I update my own memory as your architecture evolves.**
-
-## Growth Mechanism
-
-### How I Evolve
-- **New Services**: Added to service registry and catalogs automatically
-- **New Endpoints**: Added to API catalog with full documentation
-- **New Events**: Added to event catalog with producer/consumer mapping
-- **Schema Changes**: Database catalog updated with migrations
-- **Pattern Changes**: Architecture core updated with new decisions
-
-### Self-Updating System
-I maintain my memory through our conversations by:
-- Updating `main/service-registry.md` when services are added/removed
-- Updating `catalog/api-catalog.md` when endpoints change
-- Updating `catalog/event-catalog.md` when events are added
-- Updating `main/current-session.md` with development context
-- Running `save` to persist all changes
+- [DDD Protocol](./protocols/ddd-protocol.md) — 6 bounded contexts, aggregates, domain events
+- [Security Protocol](./protocols/security-protocol.md) — JWT HS256, 4 roles, OWASP Top 10
 
 ## System Status
-- **Architecture**: Microservices MemoryCore v1.0
-- **Project**: [PROJECT_NAME]
-- **Services**: [TOTAL_COUNT] microservices
-- **Loading**: "load microservices" for full restoration
-- **Growth**: Self-updating through conversation
+- **Project**: Kilat Pet Delivery ("Grab for Pets")
+- **Services**: 7 microservices (6 business + 1 gateway)
+- **Events**: 19 Kafka events across 4 topics
+- **Databases**: 6 PostgreSQL databases, 10 tables
+- **Apps**: 3 Flutter apps (Owner, Runner, Shop) + 3 Next.js web apps
+- **Status**: Code complete, all APKs built, backend healthy
 
 ---
 
-**Type "load microservices" to instantly restore full architecture knowledge!**
-
-*Replace all [PLACEHOLDERS] with your project details using the setup wizard*
+**Type "load microservices" to instantly restore full Kilat architecture knowledge!**

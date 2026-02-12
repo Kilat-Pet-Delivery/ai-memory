@@ -1,277 +1,225 @@
-# Infrastructure - [PROJECT_NAME]
-*Container orchestration, databases, message brokers, CI/CD, and monitoring*
+# Infrastructure - Kilat Pet Delivery
+*Docker Compose, PostgreSQL, Kafka, and API Gateway*
 
 ## Infrastructure Overview
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| Container Runtime | [Docker / Podman] | Containerization |
-| Orchestration | [Docker Compose / Kubernetes / ECS] | Container management |
-| Database | [PostgreSQL / MySQL / MongoDB] | Primary data store |
-| Cache | [Redis / Memcached / None] | Caching layer |
-| Message Broker | [Kafka / RabbitMQ / NATS] | Async messaging |
-| API Gateway | [Kong / Nginx / Custom / Cloud] | Request routing |
-| CI/CD | [GitHub Actions / GitLab CI / Jenkins] | Build & deploy |
-| Monitoring | [Prometheus / Datadog / CloudWatch] | Observability |
-| Logging | [ELK / Loki / CloudWatch Logs] | Log aggregation |
+| Container Runtime | Docker | Containerization |
+| Orchestration | Docker Compose | Dev environment |
+| Database | PostgreSQL 16 + PostGIS 3.4 | Primary data store |
+| Message Broker | Apache Kafka 3.x | Async event streaming |
+| Coordinator | Zookeeper | Kafka coordination |
+| API Gateway | Custom Go + Gin | Request routing |
 
-## Container Orchestration
+## Docker Compose
 
-### Development Environment
-**Technology**: [Docker Compose / Minikube / Kind]
-**Config File**: [Path to docker-compose.yml or similar]
+**Config File**: `infrastructure/docker-compose.yml`
+**Build Context**: `..` (project root, services at top level)
 
-#### Service Containers
-| Container | Image | Port Mapping | Depends On |
-|-----------|-------|-------------|------------|
-| [SERVICE_1] | [IMAGE] | [HOST:CONTAINER] | [DB, BROKER] |
-| [SERVICE_2] | [IMAGE] | [HOST:CONTAINER] | [DB, BROKER] |
-| [SERVICE_3] | [IMAGE] | [HOST:CONTAINER] | [DB, BROKER] |
+### Service Containers
+| Container | Port Mapping | Depends On |
+|-----------|-------------|------------|
+| service-identity | 8004:8004 | postgres, kafka |
+| service-booking | 8001:8001 | postgres, kafka |
+| service-payment | 8002:8002 | postgres, kafka |
+| service-runner | 8003:8003 | postgres, kafka |
+| service-tracking | 8005:8005 | postgres, kafka |
+| service-notification | 8006:8006 | postgres, kafka |
+| api-gateway | 8080:8080 | all services |
 
-#### Infrastructure Containers
+### Infrastructure Containers
 | Container | Image | Port Mapping | Purpose |
 |-----------|-------|-------------|---------|
-| [DATABASE] | [IMAGE:TAG] | [HOST:CONTAINER] | Primary database |
-| [BROKER] | [IMAGE:TAG] | [HOST:CONTAINER] | Message broker |
-| [CACHE] | [IMAGE:TAG] | [HOST:CONTAINER] | Cache layer |
-| [GATEWAY] | [IMAGE:TAG] | [HOST:CONTAINER] | API gateway |
+| postgres | postgis/postgis:16-3.4 | 5433:5432 | PostgreSQL + PostGIS |
+| kafka | confluentinc/cp-kafka:7.x | 9092:9092 | Message broker |
+| zookeeper | confluentinc/cp-zookeeper:7.x | 2181:2181 | Kafka coordination |
 
-#### Docker Compose Commands
+### Docker Compose Commands
 ```bash
-# Start all services
-docker-compose up -d
+# Start all (from infrastructure/ directory)
+cd infrastructure && docker-compose up -d
 
 # Start specific service
-docker-compose up -d [service-name]
+docker-compose up -d service-booking
 
 # View logs
-docker-compose logs -f [service-name]
+docker-compose logs -f service-booking
 
 # Rebuild after code changes
-docker-compose up -d --build [service-name]
+docker-compose up -d --build service-booking
 
-# Stop all services
+# Stop all
 docker-compose down
 
-# Reset everything (including volumes)
+# Reset everything (including database volumes)
 docker-compose down -v
 ```
 
-### Production Environment
-**Technology**: [Kubernetes / ECS / Cloud Run]
-**Config Location**: [Path to k8s manifests or similar]
-
-#### Cluster Configuration
-- **Nodes**: [Count and type]
-- **Namespaces**: [List of namespaces]
-- **Ingress**: [Ingress controller type]
-- **TLS**: [Certificate management method]
-
 ## Databases
 
-### Primary Database
-- **Technology**: [PostgreSQL 16 / MySQL 8 / MongoDB 7]
-- **Host**: [DB_HOST]
-- **Port**: [DB_PORT]
-- **Connection**: [Connection string pattern]
-- **Extensions**: [PostGIS, uuid-ossp, etc.]
+### PostgreSQL Configuration
+- **Image**: postgis/postgis:16-3.4
+- **Host**: localhost (from host) / postgres (from containers)
+- **Port**: 5433 (host) → 5432 (container)
+- **Init Script**: `infrastructure/infra/init-databases.sql`
 
 ### Database per Service
 
-| Service | Database Name | Extensions | Notes |
-|---------|--------------|------------|-------|
-| [SERVICE_1] | [DB_NAME_1] | [Extensions] | [Notes] |
-| [SERVICE_2] | [DB_NAME_2] | [Extensions] | [Notes] |
-| [SERVICE_3] | [DB_NAME_3] | [Extensions] | [Notes] |
+| Service | Database Name | Extensions |
+|---------|--------------|------------|
+| service-identity | kilat_identity | uuid-ossp |
+| service-booking | kilat_booking | PostGIS, uuid-ossp |
+| service-payment | kilat_payment | uuid-ossp |
+| service-runner | kilat_runner | PostGIS, uuid-ossp |
+| service-tracking | kilat_tracking | PostGIS, uuid-ossp |
+| service-notification | kilat_notification | uuid-ossp |
 
 ### Database Initialization
 ```sql
--- Example: init-databases.sql
-CREATE DATABASE [DB_NAME_1];
-CREATE DATABASE [DB_NAME_2];
-CREATE DATABASE [DB_NAME_3];
+-- infrastructure/infra/init-databases.sql
+CREATE DATABASE kilat_identity;
+CREATE DATABASE kilat_runner;
+CREATE DATABASE kilat_booking;
+CREATE DATABASE kilat_payment;
+CREATE DATABASE kilat_tracking;
+CREATE DATABASE kilat_notification;
 
--- Extensions (if needed)
-\c [DB_NAME_1]
+-- PostGIS extensions
+\c kilat_runner
+CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+\c kilat_booking
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+\c kilat_tracking
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- ... (similar for other DBs)
 ```
 
-**Init Script Location**: [Path to init SQL file]
-
 ### Migrations
-- **Tool**: [golang-migrate / Flyway / Alembic / Prisma]
-- **Location**: [Path to migrations per service]
-- **Naming**: [Convention — e.g., V001__create_users_table.sql]
+- **Tool**: GORM AutoMigrate (in each service's main.go)
+- **Note**: No versioned migration files yet (technical debt)
 
 ## Message Broker
 
-### Configuration
-- **Technology**: [Apache Kafka / RabbitMQ / NATS]
-- **Host**: [BROKER_HOST]
-- **Port**: [BROKER_PORT]
-- **Management UI**: [URL if available]
+### Apache Kafka Configuration
+- **Host**: localhost (from host) / kafka (from containers)
+- **Port**: 9092
+- **Library**: kafka-go
+- **Balancer**: LeastBytes
+- **Batch Timeout**: 10ms
 
-### Topics / Queues
+### Topics
 
-| Topic/Queue | Partitions | Retention | Purpose |
-|------------|-----------|-----------|---------|
-| [TOPIC_1] | [COUNT] | [DURATION] | [Purpose] |
-| [TOPIC_2] | [COUNT] | [DURATION] | [Purpose] |
-| [TOPIC_3] | [COUNT] | [DURATION] | [Purpose] |
+| Topic | Purpose |
+|-------|---------|
+| booking.events | All booking lifecycle events (7 event types) |
+| payment.events | All payment/escrow events (5 event types) |
+| runner.events | Runner status and location events (4 event types) |
+| tracking.events | Trip tracking events (3 event types) |
 
 ### Consumer Groups
 
-| Group ID | Service | Topics Consumed |
-|----------|---------|----------------|
-| [GROUP_1] | [SERVICE] | [TOPICS] |
-| [GROUP_2] | [SERVICE] | [TOPICS] |
-
-### Broker Dependencies (if applicable)
-- **ZooKeeper**: [HOST:PORT] (for Kafka)
-- **Schema Registry**: [HOST:PORT] (if using Avro/Protobuf schemas)
+| Group ID | Service | Topics |
+|----------|---------|--------|
+| service-booking-payments | service-booking | payment.events |
+| service-payment-bookings | service-payment | booking.events |
+| service-tracking-bookings | service-tracking | booking.events |
+| service-tracking-runners | service-tracking | runner.events |
+| service-notification-bookings | service-notification | booking.events |
+| service-notification-payments | service-notification | payment.events |
+| service-notification-tracking | service-notification | tracking.events |
 
 ## API Gateway
 
 ### Configuration
-- **Technology**: [Technology name]
-- **Port**: [GATEWAY_PORT]
-- **Config File**: [Path to gateway config]
+- **Technology**: Custom Go + Gin reverse proxy
+- **Port**: 8080
+- **Rate Limit**: 100 req/min
+- **Routing**: Path-prefix based (NoRoute catch-all handler)
 
 ### Route Table
 
-| Path Prefix | Target Service | Port | Auth Required |
-|------------|---------------|------|---------------|
-| /api/[resource_1] | [SERVICE_1] | [PORT] | [Yes/No] |
-| /api/[resource_2] | [SERVICE_2] | [PORT] | [Yes/No] |
-| /api/[resource_3] | [SERVICE_3] | [PORT] | [Yes/No] |
-| /ws/[resource] | [SERVICE_WS] | [PORT] | [Yes/No] |
+| Path Prefix | Target Service | Port | Auth |
+|------------|---------------|------|------|
+| /api/v1/auth/* | service-identity | 8004 | Mixed |
+| /api/v1/bookings/* | service-booking | 8001 | Yes |
+| /api/v1/payments/* | service-payment | 8002 | Yes |
+| /api/v1/runners/* | service-runner | 8003 | Yes |
+| /api/v1/petshops/* | service-runner | 8003 | Yes |
+| /api/v1/tracking/* | service-tracking | 8005 | Yes |
+| /api/v1/notifications/* | service-notification | 8006 | Yes |
+| /ws/tracking/* | service-tracking | 8005 | WS+JWT |
 
 ### Gateway Features
-- [ ] Rate Limiting
-- [ ] CORS Configuration
-- [ ] JWT Validation
-- [ ] Request/Response Logging
-- [ ] Circuit Breaking
-- [ ] WebSocket Proxying
-- [ ] SSL Termination
-
-## CI/CD Pipeline
-
-### Build Pipeline
-```
-CODE PUSH
-    |
-LINT & FORMAT CHECK
-    |
-UNIT TESTS
-    |
-BUILD DOCKER IMAGES
-    |
-INTEGRATION TESTS
-    |
-PUSH TO REGISTRY
-    |
-DEPLOY TO [ENV]
-```
-
-### Pipeline Configuration
-- **Platform**: [GitHub Actions / GitLab CI / Jenkins]
-- **Config File**: [Path to CI config]
-- **Docker Registry**: [Registry URL]
-- **Environments**: [dev, staging, production]
-
-### Deployment Strategy
-- **Method**: [Rolling / Blue-Green / Canary]
-- **Rollback**: [Manual / Automatic on failure]
-
-## Monitoring & Observability
-
-### Metrics
-- **Tool**: [Prometheus / Datadog / CloudWatch]
-- **Dashboard**: [URL]
-- **Key Metrics**:
-  - Request rate per service
-  - Error rate (4xx, 5xx)
-  - Response latency (p50, p95, p99)
-  - Message broker lag
-  - Database connection pool usage
-
-### Logging
-- **Aggregation**: [ELK Stack / Loki / CloudWatch]
-- **Format**: [JSON structured logging]
-- **Correlation**: [Trace ID / Request ID header name]
-- **Retention**: [Duration]
-
-### Tracing
-- **Tool**: [Jaeger / Zipkin / X-Ray / None]
-- **Propagation**: [Header name for trace context]
-- **Sampling Rate**: [Percentage]
-
-### Alerting
-- **Platform**: [PagerDuty / Slack / Email]
-- **Critical Alerts**: [List of critical conditions]
-- **Warning Alerts**: [List of warning conditions]
+- [x] Path-based reverse proxy
+- [x] Rate Limiting (100 req/min)
+- [x] CORS Configuration
+- [x] Security Headers
+- [x] Request ID propagation
+- [x] WebSocket Proxying (/ws/tracking/)
+- [x] Aggregated Health Check (/health)
 
 ## Network Configuration
 
-### Service Communication
 ```
-[EXTERNAL CLIENT]
+[Flutter/Next.js Apps]
         |
-    [LOAD BALANCER] (port 443)
+   [API Gateway] (port 8080)
         |
-    [API GATEWAY] (port [GATEWAY_PORT])
-        |
-    [INTERNAL NETWORK]
-    |       |       |
-[SVC_1] [SVC_2] [SVC_3]
-    |       |       |
-    [MESSAGE BROKER]
-        |
-    [DATABASES]
+   [Docker Internal Network]
+   |       |       |       |       |       |
+[Identity][Booking][Payment][Runner][Tracking][Notification]
+  :8004    :8001    :8002   :8003   :8005     :8006
+                       |
+                   [Kafka] (port 9092)
+                       |
+                 [Zookeeper] (port 2181)
+                       |
+                 [PostgreSQL] (port 5433)
 ```
 
 ### Ports Summary
-| Port | Service/Component |
-|------|------------------|
-| [PORT] | [Component] |
-| [PORT] | [Component] |
-| [PORT] | [Component] |
-
-### Security
-- **Network Policy**: [Description]
-- **Service-to-Service Auth**: [mTLS / JWT / API Key / None]
-- **Secrets Management**: [Vault / K8s secrets / env files / AWS Secrets Manager]
+| Port | Component |
+|------|-----------|
+| 8080 | API Gateway |
+| 8001-8006 | Business services |
+| 5433 | PostgreSQL + PostGIS |
+| 9092 | Apache Kafka |
+| 2181 | Zookeeper |
 
 ## Local Development Setup
 
 ### Prerequisites
 ```bash
-# Required tools
-[TOOL_1] >= [VERSION]   # e.g., Docker >= 24.0
-[TOOL_2] >= [VERSION]   # e.g., Go >= 1.22
-[TOOL_3] >= [VERSION]   # e.g., Node.js >= 20
+Docker >= 24.0
+Go >= 1.24
+Flutter >= 3.38 (for mobile apps)
+Node.js >= 20 (for Next.js web apps)
 ```
 
 ### Quick Start
 ```bash
 # 1. Start infrastructure
-docker-compose up -d [db] [broker]
+cd infrastructure && docker-compose up -d
 
-# 2. Run migrations
-[migration command]
+# 2. Wait for healthy (all services auto-migrate DB)
+docker-compose ps
 
-# 3. Start services
-docker-compose up -d
+# 3. Verify gateway
+curl http://localhost:8080/health
 
-# 4. Verify
-curl http://localhost:[GATEWAY_PORT]/health
+# 4. Flutter apps connect to:
+#    Android emulator: 10.0.2.2:8080
+#    iOS simulator: localhost:8080
 ```
 
----
-
-**Version**: Infrastructure v1.0
-**Last Updated**: [DATE]
-**Status**: Template — requires project-specific configuration
-
-*This file documents WHERE and HOW your microservices run. Update it when infrastructure changes.*
+### Flutter App Config
+- **Android**: `10.0.2.2:8080` (emulator maps to host localhost)
+- **iOS**: `localhost:8080`
+- **AndroidManifest.xml**: INTERNET + LOCATION permissions + cleartext traffic
+- **network_security_config.xml**: Allows 10.0.2.2 + localhost

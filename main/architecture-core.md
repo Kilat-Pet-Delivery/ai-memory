@@ -1,170 +1,182 @@
-# Architecture Core - [PROJECT_NAME]
+# Architecture Core - Kilat Pet Delivery
 *Architecture patterns, conventions, and design decisions*
 
 ## Project Overview
-- **Project Name**: [PROJECT_NAME]
-- **Description**: [BRIEF_DESCRIPTION]
+- **Project Name**: Kilat Pet Delivery ("Grab for Pets")
+- **Description**: Pet transport platform — owners book deliveries, runners transport pets, shop owners manage pet shops
 - **Architecture Style**: Microservices
-- **Primary Language**: [LANGUAGE] (e.g., Go, Java, Node.js, Python)
-- **Framework**: [FRAMEWORK] (e.g., Gin, Spring Boot, Express, FastAPI)
-- **API Style**: [API_STYLE] (e.g., REST, gRPC, GraphQL)
+- **Primary Language**: Go 1.24
+- **Framework**: Gin (HTTP), GORM (ORM)
+- **API Style**: REST + WebSocket (tracking)
+- **Organization**: github.com/Kilat-Pet-Delivery
 
 ## Architecture Patterns
 
 ### Active Patterns
-*Check all patterns used in this project:*
-
-- [ ] **Domain-Driven Design (DDD)** — Bounded contexts per service
-- [ ] **Clean Architecture** — Layers: handler -> service -> repository
-- [ ] **Hexagonal Architecture** — Ports and adapters
-- [ ] **CQRS** — Separate read/write models
-- [ ] **Event Sourcing** — Events as source of truth
-- [ ] **Saga Pattern** — Distributed transaction coordination
-- [ ] **API Gateway Pattern** — Single entry point for clients
-- [ ] **Service Mesh** — Sidecar proxy for service-to-service
-- [ ] **Circuit Breaker** — Fault tolerance and resilience
-- [ ] **Event-Driven Architecture** — Async communication via events
-- [ ] **Database per Service** — Each service owns its data
-- [ ] **Strangler Fig** — Gradual migration from monolith
+- [x] **Domain-Driven Design (DDD)** — Bounded contexts per service
+- [x] **Clean Architecture** — Layers: handler → application → domain → repository
+- [x] **Event-Driven Architecture** — Kafka + CloudEvents for async communication
+- [x] **Saga Pattern** — Payment escrow with compensation (release/refund)
+- [x] **API Gateway Pattern** — Single entry point on port 8080
+- [x] **Database per Service** — Each service owns its PostgreSQL database
+- [x] **CQRS (light)** — Separate read/write paths in booking service
 
 ### Pattern Details
 
-#### [PATTERN_1]
-- **What**: [Brief description]
-- **Where**: [Which services use it]
-- **How**: [Implementation details]
+#### Domain-Driven Design
+- **What**: Each service = one bounded context with clear boundaries
+- **Where**: All 6 business services
+- **How**: domain/model (entities), domain/repository (interfaces), application (use cases), infrastructure (implementations)
 
-#### [PATTERN_2]
-- **What**: [Brief description]
-- **Where**: [Which services use it]
-- **How**: [Implementation details]
+#### Saga Pattern (Orchestrated)
+- **What**: Distributed transaction for payment escrow lifecycle
+- **Where**: service-payment ↔ service-booking
+- **How**: Booking confirmed → Payment holds escrow → Delivery confirmed → Payment releases to runner. On cancel → Payment refunds. Each step has compensating action.
+
+#### Event-Driven Architecture
+- **What**: Services communicate asynchronously via Kafka events
+- **Where**: All services publish/consume events
+- **How**: CloudEvents envelope wrapping domain events, published to topic-per-domain
 
 ## Communication Patterns
 
 ### Synchronous Communication
-- **Protocol**: [HTTP REST / gRPC / GraphQL]
-- **Service Discovery**: [Method — DNS, Consul, K8s service, etc.]
-- **Load Balancing**: [Method — client-side, server-side, etc.]
-- **Timeout Policy**: [Default timeout for inter-service calls]
+- **Protocol**: HTTP REST (JSON)
+- **Service Discovery**: Docker Compose service names (internal DNS)
+- **Timeout Policy**: Default Gin timeouts
+- **Client**: Flutter apps → API Gateway → individual services
 
 ### Asynchronous Communication
-- **Message Broker**: [Kafka / RabbitMQ / NATS / Redis Streams]
-- **Event Format**: [CloudEvents / custom / Avro / Protobuf]
-- **Serialization**: [JSON / Protobuf / Avro]
-- **Delivery Guarantee**: [At-least-once / exactly-once / at-most-once]
-- **Dead Letter Queue**: [Yes/No — handling failed messages]
+- **Message Broker**: Apache Kafka 3.x
+- **Event Format**: CloudEvents specification
+- **Serialization**: JSON
+- **Delivery Guarantee**: At-least-once (consumer commits after processing)
+- **Dead Letter Queue**: Not yet implemented (TODO)
+- **Topics**: booking.events, payment.events, runner.events, tracking.events
 
 ### API Gateway
-- **Technology**: [Kong / Nginx / custom / cloud-native]
-- **Port**: [GATEWAY_PORT]
-- **Features**: [Routing, rate limiting, auth, CORS, etc.]
-- **Route Prefix**: [e.g., /api/v1/]
+- **Technology**: Custom Go + Gin reverse proxy
+- **Port**: 8080
+- **Features**: Path-based routing, WebSocket proxying, rate limiting (100 req/min), CORS, security headers, aggregated health check
+- **Route Prefix**: /api/v1/
 
 ## Project Structure
 
 ### Standard Service Layout
 ```
 service-[name]/
-├── cmd/                    # Entry point
-│   └── main.[ext]
-├── internal/               # Private application code
-│   ├── domain/             # Domain models and interfaces
-│   │   ├── model/          # Entities and value objects
-│   │   ├── repository/     # Repository interfaces
-│   │   └── service/        # Domain service interfaces
-│   ├── application/        # Use cases / application services
-│   ├── infrastructure/     # External implementations
-│   │   ├── database/       # Repository implementations
-│   │   ├── messaging/      # Event publisher/consumer
-│   │   └── external/       # Third-party integrations
-│   └── interfaces/         # Entry points
-│       ├── http/           # HTTP handlers/controllers
-│       └── consumer/       # Event consumers
-├── config/                 # Configuration files
-├── migrations/             # Database migrations
-└── tests/                  # Test files
+├── cmd/
+│   └── server/
+│       └── main.go             # Entry point, DI wiring
+├── internal/
+│   ├── domain/
+│   │   ├── model/              # Entities, value objects
+│   │   ├── repository/         # Repository interfaces
+│   │   └── service/            # Domain service interfaces
+│   ├── application/            # Use cases (business logic)
+│   │   └── [name]_service.go
+│   ├── repository/             # GORM implementations
+│   │   └── [name]_repository.go
+│   ├── handler/                # Gin HTTP handlers
+│   │   └── [name]_handler.go
+│   └── events/                 # Kafka producer/consumer
+│       └── kafka_consumer.go
+├── Dockerfile
+├── go.mod
+└── go.sum
 ```
-
-*Adjust this structure to match your project's conventions.*
 
 ## Shared Libraries
 
-### [LIB_NAME_1]
-- **Purpose**: [What it provides]
-- **Used by**: [Which services]
+### lib-common
+- **Purpose**: Shared middleware, utilities, and infrastructure code
+- **Used by**: All 7 services
 - **Key modules**:
-  - [module_1]: [description]
-  - [module_2]: [description]
-  - [module_3]: [description]
+  - `middleware/`: Auth, CORS, Logger, RateLimit, Recovery, RequestID, SecurityHeaders
+  - `kafka/`: Producer, Consumer, CloudEvents envelope
+  - `database/`: GORM connection helper
+  - `auth/`: JWT manager, UserRole constants
+  - `resilience/`: Circuit breaker patterns
+  - `health/`: Health check handler
+  - `response/`: Standard JSON response helpers
+  - `logger/`: Structured logging
 
-### [LIB_NAME_2]
-- **Purpose**: [What it provides]
-- **Used by**: [Which services]
+### lib-proto
+- **Purpose**: Shared event schemas and DTOs
+- **Used by**: All services that publish/consume events
 - **Key modules**:
-  - [module_1]: [description]
-  - [module_2]: [description]
+  - `events/booking_events.go`: 7 booking event types + payloads
+  - `events/payment_events.go`: 5 payment event types + payloads
+  - `events/runner_events.go`: 4 runner event types + payloads
+  - `events/tracking_events.go`: 3 tracking event types + payloads
+  - `dto/`: Shared DTOs (AddressDTO, etc.)
 
 ## Coding Conventions
 
 ### Naming Conventions
 - **Services**: `service-[name]` (kebab-case)
-- **Databases**: `[project]_[service]` (snake_case)
+- **Databases**: `kilat_[service]` (snake_case)
 - **API Routes**: `/api/v1/[resource]` (lowercase, plural)
-- **Events**: `[domain].[action].[past-tense]` (e.g., `order.payment.completed`)
-- **Tables**: `[plural_noun]` (snake_case)
+- **Events**: `[domain].[action]` (e.g., `booking.requested`, `payment.escrow_held`)
+- **Tables**: Auto-created by GORM (plural snake_case)
+- **Booking Numbers**: `BK-XXXXXX` format
 
 ### Error Handling
-- **Pattern**: [Centralized / per-service / middleware]
-- **Format**: [Standard error response format]
+- **Pattern**: Per-handler with standard response helper
+- **Format**:
 ```json
 {
-  "error": {
-    "code": "[ERROR_CODE]",
-    "message": "[Human readable message]",
-    "details": {}
-  }
+  "success": false,
+  "error": "Human readable message"
 }
 ```
 
 ### Authentication & Authorization
-- **Method**: [JWT / OAuth2 / API Key / mTLS]
-- **Token Location**: [Header: Authorization Bearer / Cookie]
-- **Roles**: [List of roles]
-- **Auth Service**: [Which service handles auth]
+- **Method**: JWT (HS256)
+- **Token Location**: Header: Authorization Bearer
+- **Roles**: owner, runner, admin, shop
+- **Auth Service**: service-identity (port 8004)
+- **Access Token TTL**: 15 minutes
+- **Refresh Token TTL**: 7 days
 
 ### Logging
-- **Library**: [Logger library name]
-- **Format**: [JSON / structured / plain]
-- **Levels**: [debug, info, warn, error, fatal]
-- **Correlation**: [Trace ID / Request ID propagation method]
+- **Library**: Custom structured logger (lib-common/logger)
+- **Format**: Structured with request ID correlation
+- **Middleware**: LoggerMiddleware logs all requests
 
-## Architecture Decision Records (ADR)
+## Architecture Decision Records
 
-### ADR-001: [Decision Title]
-- **Date**: [Date]
-- **Status**: [Accepted / Deprecated / Superseded]
-- **Context**: [Why this decision was needed]
-- **Decision**: [What was decided]
-- **Consequences**: [Positive and negative outcomes]
+### ADR-001: Database per Service
+- **Status**: Accepted
+- **Decision**: Each service gets its own PostgreSQL database
+- **Consequence**: Data isolation, independent scaling, but no cross-service joins
 
-### ADR-002: [Decision Title]
-- **Date**: [Date]
-- **Status**: [Accepted / Deprecated / Superseded]
-- **Context**: [Why]
-- **Decision**: [What]
-- **Consequences**: [Outcomes]
+### ADR-002: Kafka for Async Communication
+- **Status**: Accepted
+- **Decision**: Use Apache Kafka with CloudEvents for inter-service events
+- **Consequence**: Loose coupling, event replay capability, but added infrastructure complexity
+
+### ADR-003: Escrow Payment with Saga
+- **Status**: Accepted
+- **Decision**: Payment uses escrow pattern with Saga compensation
+- **Consequence**: Reliable distributed transactions, but complex flow to debug
+
+### ADR-004: PostGIS for Geospatial
+- **Status**: Accepted
+- **Decision**: Use PostGIS extension for runner/shop nearby search
+- **Consequence**: Efficient geospatial queries, but requires PostGIS-enabled PostgreSQL
+
+### ADR-005: WebSocket for Live Tracking
+- **Status**: Accepted
+- **Decision**: Use WebSocket hub for real-time GPS tracking (not polling)
+- **Consequence**: True real-time updates, but JWT passed as query param for WS
 
 ## Technical Debt & Known Issues
 
 | Issue | Severity | Affected Services | Notes |
 |-------|----------|-------------------|-------|
-| [ISSUE_1] | [High/Med/Low] | [Services] | [Details] |
-| [ISSUE_2] | [High/Med/Low] | [Services] | [Details] |
-
----
-
-**Version**: Architecture Core v1.0
-**Last Updated**: [DATE]
-**Status**: Template — requires project-specific configuration
-
-*This file defines how your microservices system is built. Update it when architecture decisions change.*
+| Missing owner_id in some events | Medium | notification | EscrowHeld, PaymentFailed, TrackingStarted skip notifications |
+| No Dead Letter Queue | Low | All consumers | Failed messages not captured |
+| runner.online/offline not consumed | Low | runner, tracking | Events published but no consumer |
+| SQL migration cleanup needed | Low | All | GORM auto-migrate, no versioned migrations |
+| Integration tests | Medium | All | Not yet implemented |
