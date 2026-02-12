@@ -61,12 +61,27 @@ When you type **"load microservices"** in any conversation:
 | Service | Port | Database | Status |
 |---------|------|----------|--------|
 | service-identity | 8004 | kilat_identity | Active |
-| service-booking | 8001 | kilat_booking (PostGIS) | Active |
+| service-booking | 8001 | kilat_booking | Active |
 | service-payment | 8002 | kilat_payment | Active |
 | service-runner | 8003 | kilat_runner (PostGIS) | Active |
 | service-tracking | 8005 | kilat_tracking (PostGIS) | Active |
 | service-notification | 8006 | kilat_notification | Active |
+| **service-review** | **8007** | **kilat_review** | **Active (NEW)** |
 | api-gateway | 8080 | — (proxy only) | Active |
+
+## 10 New Features (Feb 2026)
+| # | Feature | Service | Status |
+|---|---------|---------|--------|
+| 1 | Pet Profiles | service-booking | DONE |
+| 2 | Order Re-booking | service-booking | DONE |
+| 3 | Photo Proof (pickup/delivery) | service-booking | DONE |
+| 4 | Rating & Review System | service-review (NEW) | DONE |
+| 5 | In-App Chat | service-tracking | DONE |
+| 6 | Trip Sharing | service-tracking | DONE |
+| 7 | Promo Code System | service-payment | DONE |
+| 8 | Referral Program | service-identity | DONE |
+| 9 | Subscription Plan | service-payment | DONE |
+| 10 | Admin Dashboard | across services | ~80% (backend done, web-admin app TODO) |
 
 ## On-Demand Components (Load When Needed)
 
@@ -91,11 +106,11 @@ When you type **"load microservices"** in any conversation:
 
 ## System Status
 - **Project**: Kilat Pet Delivery ("Grab for Pets")
-- **Services**: 7 microservices (6 business + 1 gateway)
-- **Events**: 19 Kafka events across 4 topics
-- **Databases**: 6 PostgreSQL databases, 10 tables
-- **Apps**: 3 Flutter apps (Owner, Runner, Shop) + 3 Next.js web apps
-- **Status**: Code complete, all APKs built, backend healthy
+- **Services**: 8 microservices (7 business + 1 gateway)
+- **Events**: 24+ Kafka events across 5+ topics
+- **Databases**: 7 PostgreSQL databases, 20+ tables
+- **Apps**: 3 Flutter apps (Owner, Runner, Shop) + 3 Next.js web apps + web-admin (TODO)
+- **Status**: All backend complete, all APKs built, web-admin frontend pending
 
 ---
 

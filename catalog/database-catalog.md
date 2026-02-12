@@ -5,8 +5,8 @@
 
 **Primary Database**: PostgreSQL 16 + PostGIS 3.4
 **Host**: localhost:5433 (host) / postgres:5432 (Docker)
-**Total Databases**: 6
-**Total Tables**: 10
+**Total Databases**: 7
+**Total Tables**: 20+
 **ORM**: GORM (AutoMigrate)
 **Migration Tool**: GORM AutoMigrate (no versioned files yet)
 
@@ -14,12 +14,27 @@
 
 | # | Database | Owner Service | Extensions | Tables |
 |---|---------|--------------|------------|--------|
-| 1 | kilat_identity | service-identity | uuid-ossp | users, refresh_tokens |
-| 2 | kilat_booking | service-booking | PostGIS, uuid-ossp | bookings |
-| 3 | kilat_payment | service-payment | uuid-ossp | payments |
+| 1 | kilat_identity | service-identity | uuid-ossp | users, refresh_tokens, referrals, user_referral_codes |
+| 2 | kilat_booking | service-booking | PostGIS, uuid-ossp | bookings, pets, booking_photos |
+| 3 | kilat_payment | service-payment | uuid-ossp | payments, promos, promo_usages, subscriptions |
 | 4 | kilat_runner | service-runner | PostGIS, uuid-ossp | runners, pet_shops |
-| 5 | kilat_tracking | service-tracking | PostGIS, uuid-ossp | trip_tracks, waypoints |
+| 5 | kilat_tracking | service-tracking | PostGIS, uuid-ossp | trip_tracks, waypoints, chat_messages, shared_trips |
 | 6 | kilat_notification | service-notification | uuid-ossp | notifications, notification_preferences |
+| 7 | **kilat_review** | **service-review** | uuid-ossp | **reviews** (NEW) |
+
+### New Tables (Feb 2026)
+| Table | Database | Feature |
+|-------|----------|---------|
+| pets | kilat_booking | Pet Profiles |
+| booking_photos | kilat_booking | Photo Proof |
+| reviews | kilat_review | Rating & Review |
+| chat_messages | kilat_tracking | In-App Chat |
+| shared_trips | kilat_tracking | Trip Sharing |
+| promos | kilat_payment | Promo Codes |
+| promo_usages | kilat_payment | Promo Codes |
+| referrals | kilat_identity | Referral Program |
+| user_referral_codes | kilat_identity | Referral Program |
+| subscriptions | kilat_payment | Subscription Plans |
 
 ---
 

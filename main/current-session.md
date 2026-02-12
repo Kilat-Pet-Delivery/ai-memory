@@ -2,35 +2,33 @@
 *Temporary working memory — resets each session*
 
 ## Session RAM Status
-**Current Session**: New
+**Current Session**: Post-feature batch
 **Last Activity**: 2026-02-12
-**Active Service**: None
-**Current Task**: Ready for new work
-**Context State**: Idle
+**Active Service**: Multiple (features across all services)
+**Current Task**: web-admin Next.js app (Feature 10 frontend)
+**Context State**: Paused — user left, will continue on home PC
 
 ## Previous Session Recap
 
-- **Summary**: All 6 services + gateway code complete. 3 Flutter apps (Owner, Runner, Shop) built and installed on emulator. 3 Next.js web apps (landing, seller center, runner dashboard) created. Backend docker-compose all healthy.
-- **Where We Left Off**: Created Microservices MemoryCore project and AI memory system
+- **Summary**: Added 9 complete features + admin backend endpoints across all services. Created new service-review microservice. All backend code committed and pushed to GitHub.
+- **Where We Left Off**: Feature 10 Admin Dashboard — backend endpoints DONE, was about to create web-admin Next.js app when user needed to leave
 - **Active Branch**: master
-- **Services Running**: All healthy via docker-compose
-- **Known Issues**: Missing owner_id in some event payloads (notification skips), no DLQ, no integration tests yet
+- **Latest Commit**: `d43f66e` — "Add 9 new features + admin backend endpoints across all services"
 
-## Working Memory (RAM)
-- **Service Focus**: None currently
-- **Current Task**: —
-- **Recent Changes**: —
-- **Next Steps**: End-to-end testing, SQL migration cleanup, integration tests
+## What Was Done (Feb 2026 session)
+1. **Pet Profiles** — pets table, CRUD endpoints in service-booking
+2. **Order Re-booking** — POST /bookings/:id/rebook clones booking
+3. **Photo Proof** — booking_photos table, runner upload endpoints
+4. **Rating & Review** — NEW service-review (port 8007, kilat_review DB)
+5. **In-App Chat** — chat_messages in service-tracking, WebSocket extension
+6. **Trip Sharing** — shared_trips with public token access
+7. **Promo Codes** — promos + promo_usages tables, validate/apply
+8. **Referral Program** — referrals + user_referral_codes in service-identity
+9. **Subscription Plans** — subscriptions table, basic/premium plans
+10. **Admin Dashboard** — admin endpoints in identity/booking/payment + gateway routes
 
-## Current Progress
-- All 6 services + gateway: DONE
-- Owner app (app-mobile): DONE
-- Runner app (app-runner): DONE
-- Shop owner app (app-shop): DONE
-- 3 Next.js web apps: DONE
-- All APKs built: DONE
-- Backend healthy: DONE
-- AI Memory system: DONE
-- End-to-end testing: TODO
-- Integration tests: TODO
-- SQL migration cleanup: TODO
+## What's Left (TODO)
+- **web-admin/** Next.js app (port 3003) — Dashboard, Users, Bookings, Payments, Promos, Reviews pages
+- End-to-end testing via app UI
+- SQL migration cleanup
+- Integration tests

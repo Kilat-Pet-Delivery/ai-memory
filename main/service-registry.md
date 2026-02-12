@@ -3,20 +3,21 @@
 
 ## Service Overview
 
-**Total Services**: 7 (6 business + 1 gateway)
-**Active**: 7 | **Planned**: 0 | **Deprecated**: 0
+**Total Services**: 8 (7 business + 1 gateway)
+**Active**: 8 | **Planned**: 0 | **Deprecated**: 0
 
 ## Service Registry Table
 
 | # | Service | Port | Database | Tech Stack | Responsibility | Status |
 |---|---------|------|----------|------------|----------------|--------|
-| 1 | service-identity | 8004 | kilat_identity | Go+Gin+GORM | Auth, JWT, user management, roles | Active |
-| 2 | service-booking | 8001 | kilat_booking | Go+Gin+GORM | Booking state machine, pricing | Active |
-| 3 | service-payment | 8002 | kilat_payment | Go+Gin+GORM | Escrow, Saga pattern, mock Stripe | Active |
+| 1 | service-identity | 8004 | kilat_identity | Go+Gin+GORM | Auth, JWT, roles, referrals, admin users | Active |
+| 2 | service-booking | 8001 | kilat_booking | Go+Gin+GORM | Booking, pet profiles, photos, admin bookings | Active |
+| 3 | service-payment | 8002 | kilat_payment | Go+Gin+GORM | Escrow, promos, subscriptions, admin payments | Active |
 | 4 | service-runner | 8003 | kilat_runner (PostGIS) | Go+Gin+GORM | Runner profiles, nearby search, pet shops | Active |
-| 5 | service-tracking | 8005 | kilat_tracking (PostGIS) | Go+Gin+GORM | WebSocket hub, GPS waypoints, GeoJSON | Active |
+| 5 | service-tracking | 8005 | kilat_tracking (PostGIS) | Go+Gin+GORM | WebSocket hub, GPS, chat, trip sharing | Active |
 | 6 | service-notification | 8006 | kilat_notification | Go+Gin+GORM | FCM push, Twilio SMS, SMTP email | Active |
-| 7 | api-gateway | 8080 | — | Go+Gin | Reverse proxy, WS tunneling, rate limit | Active |
+| 7 | service-review | 8007 | kilat_review | Go+Gin+GORM | Rating & reviews (NEW Feb 2026) | Active |
+| 8 | api-gateway | 8080 | — | Go+Gin | Reverse proxy, WS tunneling, rate limit | Active |
 
 ---
 
@@ -178,6 +179,15 @@
 | /api/v1/petshops/* | service-runner | 8003 |
 | /api/v1/tracking/* | service-tracking | 8005 |
 | /api/v1/notifications/* | service-notification | 8006 |
+| /api/v1/reviews/* | service-review | 8007 |
+| /api/v1/chat/* | service-tracking | 8005 |
+| /api/v1/pets/* | service-booking | 8001 |
+| /api/v1/referrals/* | service-identity | 8004 |
+| /api/v1/promos/* | service-payment | 8002 |
+| /api/v1/subscriptions/* | service-payment | 8002 |
+| /api/v1/admin/users/* | service-identity | 8004 |
+| /api/v1/admin/bookings/* | service-booking | 8001 |
+| /api/v1/admin/payments/* | service-payment | 8002 |
 | /ws/tracking/* | service-tracking | 8005 |
 
 ---
@@ -192,6 +202,7 @@
 | 8004 | service-identity |
 | 8005 | service-tracking |
 | 8006 | service-notification |
+| 8007 | service-review (NEW) |
 | 8080 | api-gateway |
 | 5433 | PostgreSQL 16 + PostGIS |
 | 9092 | Apache Kafka |
@@ -202,15 +213,10 @@
 ```
 [Flutter Apps / Next.js Web] --> [API Gateway :8080]
                                       |
-          +----------+----------+-----+-----+----------+
-          |          |          |           |           |
-    [Identity]  [Booking]  [Payment]  [Runner]  [Notification]
-      :8004      :8001      :8002     :8003       :8006
-                   |          |         |            |
-                   +----[Kafka]----+----+            |
-                   |   (events)    |                 |
-                   +----+----------+---------+-------+
-                                             |
-                                       [Tracking]
-                                         :8005
+     +--------+--------+------+------+------+--------+
+     |        |        |      |      |      |        |
+ [Identity] [Booking] [Pay] [Runner] [Notif] [Review] [Tracking]
+   :8004     :8001   :8002  :8003   :8006   :8007    :8005
+                |       |      |       |       |        |
+                +---[Kafka]----+-------+-------+--------+
 ```
