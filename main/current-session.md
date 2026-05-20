@@ -4,16 +4,16 @@
 ## Session RAM Status
 **Current Session**: Pet Runner backend Plan A continuation
 **Last Activity**: 2026-05-20
-**Active Service**: service-incident
-**Current Task**: Plan A Phase 5 — service-incident SLA worker + auto-escalation
-**Context State**: Phase 4 pushed; ready to start Phase 5
+**Active Service**: service-loyalty
+**Current Task**: Plan A Phase 6 — service-loyalty schema + quest definitions + REST
+**Context State**: Phase 5 pushed; ready to start Phase 6
 
 ## Previous Session Recap
 
-- **Summary**: Continued the newest May 19 backend plan (`docs/superpowers/plans/2026-05-19-pet-runner-backend-plan.md`). Phase 0 foundation was already present and verified. Phase 1 created/pushed `service-chat` and wired infrastructure to build it. Phase 2 added realtime presence/typing hooks in `service-chat`, `/ws/chat` + `/ws/presence` in `api-gateway`, and gateway realtime env in infrastructure. Phase 3 added storage-backed chat photo attachments in `service-chat`. Phase 4 created/pushed `service-incident` and wired infrastructure to build it.
-- **Where We Left Off**: Phase 4 is pushed as draft PR `https://github.com/Kilat-Pet-Delivery/service-incident/pull/1`; infrastructure build switch is `https://github.com/Kilat-Pet-Delivery/infrastructure/pull/4`. Next step is Phase 5: add SLA policy/worker, advisory lock, breach/escalation persistence, and `IncidentEscalated` producer.
-- **Active Branches / PRs**: `service-chat#1` Phase 1, `infrastructure#2` Phase 1, `service-chat#2` Phase 2, `api-gateway#2` Phase 2, `infrastructure#3` Phase 2, `service-chat#3` Phase 3, `service-incident#1` Phase 4, `infrastructure#4` Phase 4.
-- **Latest Local Verification**: Phase 4 ran `go test ./...` and `go build ./cmd/server` in `service-incident`; `docker compose config` and `docker compose build service-incident` in `infrastructure`.
+- **Summary**: Continued the newest May 19 backend plan (`docs/superpowers/plans/2026-05-19-pet-runner-backend-plan.md`). Phase 0 foundation was already present and verified. Phase 1 created/pushed `service-chat` and wired infrastructure to build it. Phase 2 added realtime presence/typing hooks in `service-chat`, `/ws/chat` + `/ws/presence` in `api-gateway`, and gateway realtime env in infrastructure. Phase 3 added storage-backed chat photo attachments in `service-chat`. Phase 4 created/pushed `service-incident` and wired infrastructure to build it. Phase 5 added the `service-incident` SLA worker, breach persistence/filtering, advisory locking, and `IncidentEscalated` publish path.
+- **Where We Left Off**: Phase 5 is pushed as draft PR `https://github.com/Kilat-Pet-Delivery/service-incident/pull/2`; infrastructure polling config is `https://github.com/Kilat-Pet-Delivery/infrastructure/pull/5`. Next step is Phase 6: create `service-loyalty` with quest definitions, quest progress/tier/referral/redemption schema, REST handlers, and seed quests.
+- **Active Branches / PRs**: `service-chat#1` Phase 1, `infrastructure#2` Phase 1, `service-chat#2` Phase 2, `api-gateway#2` Phase 2, `infrastructure#3` Phase 2, `service-chat#3` Phase 3, `service-incident#1` Phase 4, `infrastructure#4` Phase 4, `service-incident#2` Phase 5, `infrastructure#5` Phase 5.
+- **Latest Local Verification**: Phase 5 ran `go test ./...` and `go build ./cmd/server` in `service-incident`; `docker compose config` and `docker compose build service-incident` in `infrastructure`.
 
 ## What Was Done (Feb 2026 session)
 1. **Pet Profiles** — pets table, CRUD endpoints in service-booking
@@ -28,7 +28,7 @@
 10. **Admin Dashboard** — admin endpoints in identity/booking/payment + gateway routes
 
 ## What's Left (TODO)
-- Start Phase 5 on `service-incident` branch `pet-runner-backend-plan-a-phase-5`, based on `pet-runner-backend-plan-a-phase-4`.
-- Add `breached_at`, SLA policies, worker scan loop, advisory lock helper, and escalation event producer.
-- Extend incident list filters for `breached` and add SLA tests.
-- Push Phase 5 and open a draft PR before moving to Phase 6.
+- Start Phase 6 by creating/pushing `service-loyalty` on branch `pet-runner-backend-plan-a-phase-6`.
+- Implement quest definition/progress, tier snapshot, referral, and redemption schema with seed quest definitions.
+- Add REST endpoints for quests, quest progress, tier snapshot, referrals, referral code creation, and internal referral registration.
+- Wire `service-loyalty` into infrastructure once the service builds.
