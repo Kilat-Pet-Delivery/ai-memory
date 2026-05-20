@@ -2,18 +2,18 @@
 *Temporary working memory — resets each session*
 
 ## Session RAM Status
-**Current Session**: Post-feature batch
-**Last Activity**: 2026-02-12
-**Active Service**: Multiple (features across all services)
-**Current Task**: web-admin Next.js app (Feature 10 frontend)
-**Context State**: Paused — user left, will continue on home PC
+**Current Session**: Pet Runner backend Plan A continuation
+**Last Activity**: 2026-05-20
+**Active Service**: service-chat
+**Current Task**: Plan A Phase 1 — service-chat schema + REST + booking-accept thread lifecycle
+**Context State**: Paused after local scaffold + focused verification
 
 ## Previous Session Recap
 
-- **Summary**: Added 9 complete features + admin backend endpoints across all services. Created new service-review microservice. All backend code committed and pushed to GitHub.
-- **Where We Left Off**: Feature 10 Admin Dashboard — backend endpoints DONE, was about to create web-admin Next.js app when user needed to leave
-- **Active Branch**: master
-- **Latest Commit**: `d43f66e` — "Add 9 new features + admin backend endpoints across all services"
+- **Summary**: Continued the newest May 19 backend plan (`docs/superpowers/plans/2026-05-19-pet-runner-backend-plan.md`). Phase 0 foundation was already present and verified. Scaffolded `service-chat` locally and wired infrastructure to build it instead of the Phase 0 alpine stub.
+- **Where We Left Off**: `service-chat` compiles, unit/handler/integration tests pass, migrations smoke up/down, Docker image builds. Remaining Phase 1 work is publishing the new repo and infrastructure PRs, then doing full-stack curl smoke once branches are available.
+- **Active Branch**: existing repos unchanged except infrastructure working tree; `service-chat/` is a new local directory and is not initialized as a git repo yet.
+- **Latest Local Verification**: `go test ./...`, `go test -tags=integration -v -timeout 180s -count=1 .`, migration up/down smoke, and `go build -o /tmp/service-chat-server ./cmd/server` in `service-chat`; `docker compose config` and `docker compose build service-chat` in `infrastructure`; `go test ./storage/...` in `lib-common`; `go test ./...` in `lib-proto`.
 
 ## What Was Done (Feb 2026 session)
 1. **Pet Profiles** — pets table, CRUD endpoints in service-booking
@@ -28,7 +28,7 @@
 10. **Admin Dashboard** — admin endpoints in identity/booking/payment + gateway routes
 
 ## What's Left (TODO)
-- **web-admin/** Next.js app (port 3003) — Dashboard, Users, Bookings, Payments, Promos, Reviews pages
-- End-to-end testing via app UI
-- SQL migration cleanup
-- Integration tests
+- Initialize or connect the new `service-chat` repo before commit/PR.
+- Push Phase 1 `service-chat` and infrastructure branches.
+- Run full-stack booking-accept curl smoke after branches are available locally/remotely.
+- Continue Plan A Phase 2 after Phase 1 integration/smoke is clean.
